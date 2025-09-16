@@ -1,4 +1,4 @@
-export default {
+export default { 
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const pathname = url.pathname;
@@ -6,7 +6,7 @@ export default {
     const username = url.searchParams.get("username") || "";
     const password = url.searchParams.get("password") || "";
 
-    // 🔐 usuarios permitidos (puedes ampliarlo o cargar de KV si quieres)
+    // 🔐 usuarios permitidos
     const USERS = {
       "demo": "demo123",
       "testuser": "testpass"
@@ -22,23 +22,19 @@ export default {
         return new Response("Invalid credentials", { status: 403 });
       }
 
+      // 👉 Canal de ejemplo
       const channels = [
         {
-          id: "249998",
-          name: "Futsal 10",
-          group: "Sports"
-        },
-        {
-          id: "249997",
-          name: "Futsal 9",
-          group: "Sports"
+          id: "247470",
+          name: "ES: Max Avances FHD",
+          group: "Deportes",
+          url: "http://trial.123gate.org:80/live/TV-2301039847977/491906379867/247470.m3u8"
         }
       ];
 
       let m3u = "#EXTM3U\n";
       for (const ch of channels) {
-        const streamUrl = `${env.DEFAULT_SERVER}/live/${username}/${password}/${ch.id}.m3u8`;
-        m3u += `#EXTINF:-1 tvg-id="${ch.id}" group-title="${ch.group}",${ch.name}\n${streamUrl}\n`;
+        m3u += `#EXTINF:-1 tvg-id="${ch.id}" group-title="${ch.group}",${ch.name}\n${ch.url}\n`;
       }
 
       return new Response(m3u, {
@@ -55,24 +51,17 @@ export default {
       const action = url.searchParams.get("action") || "";
 
       if (action === "get_live_categories") {
-        return Response.json([{ category_id: 1, category_name: "Sports" }]);
+        return Response.json([{ category_id: 1, category_name: "Deportes" }]);
       }
 
       if (action === "get_live_streams") {
         return Response.json([
           {
-            name: "Futsal 10",
-            stream_id: "249998",
+            name: "ES: Max Avances FHD",
+            stream_id: "247470",
             stream_icon: "",
             category_id: 1,
-            cmd: `${env.DEFAULT_SERVER}/live/${username}/${password}/249998.m3u8`
-          },
-          {
-            name: "Futsal 9",
-            stream_id: "249997",
-            stream_icon: "",
-            category_id: 1,
-            cmd: `${env.DEFAULT_SERVER}/live/${username}/${password}/249997.m3u8`
+            cmd: "http://trial.123gate.org:80/live/TV-2301039847977/491906379867/247470.m3u8"
           }
         ]);
       }
