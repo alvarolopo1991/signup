@@ -5,35 +5,44 @@ export default {
 
     const username = url.searchParams.get("username") || "";
     const password = url.searchParams.get("password") || "";
+    const action   = url.searchParams.get("action") || "";
 
-    // 🔐 usuarios permitidos
+    // 🔐 Usuarios válidos
     const USERS = {
       "demo": "demo123",
       "testuser": "testpass"
     };
 
+    // 🔗 Canales disponibles (puedes añadir más)
+    const CHANNELS = [
+      {
+        id: "247470",
+        name: "ES: Max Avances FHD",
+        group: "Deportes",
+        url: "http://trial.123gate.org:80/live/TV-2301039847977/491906379867/247470.m3u8"
+      },
+      {
+        id: "249998",
+        name: "ES: Futsal 10",
+        group: "Deportes",
+        url: "http://trial.123gate.org:80/live/TV-2301039847977/491906379867/249998.m3u8"
+      }
+    ];
+
     function checkAuth(u, p) {
       return USERS[u] && USERS[u] === p;
     }
 
-    // ⬇️ GET.PHP (devuelve lista M3U)
+    // ------------------------
+    // /get.php → devuelve M3U
+    // ------------------------
     if (pathname === "/get.php") {
       if (!checkAuth(username, password)) {
         return new Response("Invalid credentials", { status: 403 });
       }
 
-      // 👉 Canal de ejemplo
-      const channels = [
-        {
-          id: "247470",
-          name: "ES: Max Avances FHD",
-          group: "Deportes",
-          url: "http://trial.123gate.org:80/live/TV-2301039847977/491906379867/247470.m3u8"
-        }
-      ];
-
       let m3u = "#EXTM3U\n";
-      for (const ch of channels) {
+      for (const ch of CHANNELS) {
         m3u += `#EXTINF:-1 tvg-id="${ch.id}" group-title="${ch.group}",${ch.name}\n${ch.url}\n`;
       }
 
@@ -42,53 +51,55 @@ export default {
       });
     }
 
-    // ⬇️ PLAYER_API.PHP (responde como Xtream)
+    // -----------------------------------
+    // /player_api.php → API estilo Xtream
+    // -----------------------------------
     if (pathname === "/player_api.php") {
       if (!checkAuth(username, password)) {
         return new Response("Forbidden", { status: 403 });
       }
 
-      const action = url.searchParams.get("action") || "";
-
-      // ✅ PING INICIAL (sin action)
-      if (action === "") {
-        return Response.json({
-          user_info: {
-            username,
-            password,
-            auth: 1,
-            status: "Active"
-          },
-          server_info: {
-            url: "https://signup.alvarolopo1991.workers.dev",
-            port: "443",
-            https_port: "443",
-            server_protocol: "https",
-            rtmp_port: "0",
-            timezone: "Europe/Madrid"
-          }
-        });
-      }
-
-      // ✅ Categorías
+      // Categorías
       if (action === "get_live_categories") {
-        return Response.json([{ category_id: 1, category_name: "Deportes" }]);
+        const cats = [...new Set(CHANNELS.map(c => c.group))];
+        return Response.json(
+          cats.map((c, i) => ({ category_id: i + 1, category_name: c }))
+        );
       }
 
-      // ✅ Streams LIVE
+      // Lista de streams
       if (action === "get_live_streams") {
-        return Response.json([
-          {
-            name: "ES: Max Avances FHD",
-            stream_id: "247470",
-            stream_icon: "",
-            category_id: 1,
-            cmd: "http://trial.123gate.org:80/live/TV-2301039847977/491906379867/247470.m3u8"
-          }
-        ]);
+        const list = CHANNELS.map((ch, i) => ({
+          num: i + 1,
+          name: ch.name,
+          stream_id: ch.id,
+          stream_icon: "",
+          category_id: 1,
+          cmd: ch.url
+        }));
+        return Response.json(list);
       }
 
-      return Response.json({ result: "ok" });
+      // 👇 Respuesta básica que muchas apps piden primero (sin action)
+      return Response.json({
+        user_info: {
+          username,
+          password,
+          auth: 1,
+          status: "Active",
+          exp_date: "1893456000", // opcional: fecha de expiración en timestamp (2030)
+          is_trial: "0",
+          active_cons: "1"
+        },
+        server_info: {
+          url: url.hostname,
+          port: url.port || (url.protocol === "https:" ? "443" : "80"),
+          https_port: "443",
+          server_protocol: url.protocol.replace(":", ""), // http o https
+          rtmp_port: "0",
+          timezone: "UTC"
+        }
+      });
     }
 
     return new Response("Not Found", { status: 404 });
