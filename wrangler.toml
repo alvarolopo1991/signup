@@ -2,6 +2,6 @@ name = "signup"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 
-# Sirve ficheros estáticos (como enlaces.m3u)
-[site]
-bucket = "./"
+[assets]
+directory = "./public"
+binding = "ASSETS"
