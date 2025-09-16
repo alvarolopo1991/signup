@@ -1,4 +1,4 @@
-export default { 
+export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const pathname = url.pathname;
@@ -16,7 +16,7 @@ export default {
       return USERS[u] && USERS[u] === p;
     }
 
-    // ⬇️ GET.PHP
+    // ⬇️ GET.PHP (devuelve lista M3U)
     if (pathname === "/get.php") {
       if (!checkAuth(username, password)) {
         return new Response("Invalid credentials", { status: 403 });
@@ -42,7 +42,7 @@ export default {
       });
     }
 
-    // ⬇️ PLAYER_API.PHP
+    // ⬇️ PLAYER_API.PHP (responde como Xtream)
     if (pathname === "/player_api.php") {
       if (!checkAuth(username, password)) {
         return new Response("Forbidden", { status: 403 });
@@ -50,10 +50,32 @@ export default {
 
       const action = url.searchParams.get("action") || "";
 
+      // ✅ PING INICIAL (sin action)
+      if (action === "") {
+        return Response.json({
+          user_info: {
+            username,
+            password,
+            auth: 1,
+            status: "Active"
+          },
+          server_info: {
+            url: "https://signup.alvarolopo1991.workers.dev",
+            port: "443",
+            https_port: "443",
+            server_protocol: "https",
+            rtmp_port: "0",
+            timezone: "Europe/Madrid"
+          }
+        });
+      }
+
+      // ✅ Categorías
       if (action === "get_live_categories") {
         return Response.json([{ category_id: 1, category_name: "Deportes" }]);
       }
 
+      // ✅ Streams LIVE
       if (action === "get_live_streams") {
         return Response.json([
           {
